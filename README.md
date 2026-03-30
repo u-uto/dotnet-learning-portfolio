@@ -1,4 +1,3 @@
-# dotnet-learning-portfolio
 # .NET Learning Portfolio
 
 ## 概要
