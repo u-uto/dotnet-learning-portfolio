@@ -42,7 +42,7 @@ public enum UserStatus {
 ### 構造体型（struct）
 複数のデータを一つにまとめるための軽量な型です。
 
-＊＊役割：＊＊
+＊＊  役割：  ＊＊
 -独自のデータ型を定義することで関連する情報の管理を用意にする。
 
 ```csharp
@@ -54,15 +54,6 @@ public struct Point
 }
 
 ```
-
----
-
-複数のデータを1つにまとめた「軽量な値の塊」です。
-| 分類 | **例** |
-| :--- | :--- |
-| 標準の構造体 | DateTime (日時), TimeSpan (時間差), Guid (識別子)
-| カスタム構造体 | public struct Point { public int X, Y; }
-
 ---
 
 ## 2.　class（参照型）
