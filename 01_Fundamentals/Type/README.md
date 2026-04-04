@@ -72,14 +72,60 @@ public struct Point
 - **自作クラス:** 業務ロジックやエンティティを定義します。
 
 ### インターフェース (interface)
-実装を持つことを保証する「契約」です
+「何ができるか」という機能の契約を定義します。  
+具体的な中身は持たず、継承先で必ず実装することを保証します。
+
+**役割:**
+- 異なるクラスに共通の動作を持たせ、依存性を下げる（疎結合にする）。
+```csharp
+public interface ILogger {
+    void Log(string message); // 実装をもたないメソッドの定義
+}
+
+public class ConsoleLogger : ILogger {
+    public void Log(string message) => Console.WriteLine($"[Log]: {message}");
+}
+```
 
 ### デリゲート (delegate)
-メソッドを参照するための型です
+「メソッドを代入できる変数」のような型です。  
+イベント処理や、メソッドを引数として渡したい時に使います。
+
+**役割:**
+- 実行する処理を後から差し替え可能にする。
+```csharp
+// 文字列を受け取り、戻り値がないメソッドを指す型を定義
+public delegate void Notify(string message);
+
+public class Process {
+    public void Start(Notify callback) {
+        Console.WriteLine("処理開始...");
+        callback("完了しました！"); // 渡されたメソッドを実行
+    }
+}
+
+// 利用例：ラムダ式を使ってその場で処理を渡す
+var p = new Process();
+p.Start(msg => Console.WriteLine(msg));
+```
 
 ### レコード (record)
-すべての項目（プロパティ）の値が同じなら同じものとみなす(等価性)
-という性質を持つ型
+値の等価性（すべての項目（プロパティ）の値が同じなら同じものとみなす）という性質を持つ型
+
+**役割:**
+- データの塊（DTOなど）を不変（Immutable）に保ちたい場合に最適です。
+
+```csharp
+// 1行で定義可能（プロパティが自動生成される）
+public record UserRecord(int Id, string Name);
+
+var u1 = new UserRecord(1, "田中");
+var u2 = new UserRecord(1, "田中");
+
+Console.WriteLine(u1 == u2); // True (参照先が違っても、中身が同じならTrue)
+// 非破壊的書き換え (Nameだけ変えた新しいコピーを作る)
+var u3 = u1 with { Name = "鈴木" };
+```
 
 ---
 
@@ -125,59 +171,69 @@ age ??= 20; // ageがnullなら20を代入
 ---
 
 ### ボックス化と型判定
-object 型を使うことで、あらゆる型を抽象化して扱うことができますが、元の型に戻す（ダウンキャスト）際には注意が必要です。
+値型（スタック）を object 型（ヒープ）に変換する操作です。
 
 ```csharp
-object genericData = "Hello World";
+int num = 123;          // 値型 (スタック)
 
-// 現代的な型判定 (型パターンマッチング)
-if (genericData is string text) 
-{
-    // text 変数として安全に使用可能
-    Console.WriteLine($"文字列の長さ: {text.Length}");
+// ボックス化 (Boxing)
+object boxed = num;     // intをobjectという「箱」に入れる (ヒープへ移動)
+
+// ボックス化解除 (Unboxing)
+int unboxed = (int)boxed; // 明示的なキャストが必要
+```
+
+**注意点:** ボックス化はメモリの割り当て（アロケーション）が発生するため、ループ内で数万回行うような処理ではパフォーマンス低下の原因になります。
+
+---
+
+## 4. 型変換(Type Conversion)
+
+### キャスト (Cast)
+ある型を別の型として扱います。
+
+### 暗黙的変換
+互換性のある型間（int → long/double）では自動変換されます。
+```csharp
+int x = 10;
+long y = x;  // 自動変換
+```
+
+### 明示的変換（キャスト）
+データ損失や非互換型の場合は()で強制して変換
+
+```csharp
+double d = 3.99;
+int i = (int)d;  // 3（小数点切り捨て）
+```
+
+**※変換失敗時はInvalidCastExceptionが発生します。**
+
+## 安全な型変換
+キャスト失敗による例外を防ぐための手法
+
+```csharp
+object obj = "C# Learning";
+
+// 1. as演算子
+string? s = obj as string;
+if (s != null) {
+    Console.WriteLine(s.Length);
+}
+
+// 2. is演算子 (型パターンマッチング: 現代のC#で最も推奨される書き方)
+if (obj is string text) {
+    // このブロック内では text 変数が string として使える
+    Console.WriteLine(text.Length);
 }
 ```
 
 ---
 
-### Point
-- 型安全性: object で何でも受けるのではなく、なるべく Generics を使って「何が入るか」を明確にすること。
-- パフォーマンス: ボックス化（値型を object に入れる）は、大量のデータを扱う際にメモリ消費とCPU負荷を高める原因になること。
-- モダンな記述: as によるキャストよりも、is を使ったパターンマッチングの方が安全で読みやすいこと。
-
----
-
-## 4. 型変換
-型同士を変換する手法
-
-### キャスト (Cast)
-ある型を別の型として扱います。
-
-** 特徴 **
-- ** 暗黙的な変換: ** データ損失がない場合（int → double など）は自動で行われます。
-- ** 明示的な変換 (キャスト):** データ損失の可能性がある場合、明示的に指定します。
-
-```csharp
-double pi = 3.14;
-int roundedPi = (int)pi; // 明示的キャスト（小数点以下が切り捨てられる）
-```
-
----
-
-### 安全な型変換（AS）
-キャスト失敗による例外（InvalidCastException）を防ぐための手法
-
-```csharp
-object obj = "文字列";
-string str1 = (string)obj;  // 成功: "文字列"、失敗時: 例外
-string str2 = obj as string; // 成功: "文字列"、失敗時: null
-```
-
----
-
-
-
 ## 5. メモリ管理
+型によって、データが保持される領域と管理方法が異なります。
 
-- スタック (Stack): 高速に割り当て・解放が行われる。値型が格納される。
-- ヒープ (Heap): ガベージコレクション (GC) によって管理される。参照型の実体が格納される。
+| 領域 | 特徴 | 格納される主な型|
+| :--- | :--- | :--- |
+| **スタック (Stack)** | 高速・軽量。スコープを抜けると即座に解放。| 値型 (`int`, `struct` 等) |
+| **ヒープ (Heap)** | 柔軟・大容量。ガベージコレクション (GC) が管理。| 参照型 (`class`, `record` 等) |
